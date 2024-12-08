@@ -7,6 +7,23 @@ class Day7 {
     fun part1(input: List<String>): Long {
         return input.sumOf { line ->
             val equation = line.parseEquation()
+            equation.enumerateOperators()
+                .filterNot {
+                    // part 2 introduces a new operator that must be ignored in part 1
+                    it.contains(Operators.CONCATENATION)
+                }
+                .forEach { operators ->
+                    if (equation.evaluate(operators) == equation.result) {
+                        return@sumOf equation.result
+                    }
+                }
+            return@sumOf 0
+        }
+    }
+
+    fun part2(input: List<String>): Long {
+        return input.sumOf { line ->
+            val equation = line.parseEquation()
             equation.enumerateOperators().forEach { operators ->
                 if (equation.evaluate(operators) == equation.result) {
                     return@sumOf equation.result
@@ -14,10 +31,6 @@ class Day7 {
             }
             return@sumOf 0
         }
-    }
-
-    fun part2(input: List<String>): Int {
-        return 0
     }
 
     enum class Operators {
@@ -28,6 +41,10 @@ class Day7 {
         MULTIPLICATION {
             override fun apply(a: Long, b: Long): Long = a * b
             override fun toString(): String = "*"
+        },
+        CONCATENATION {
+            override fun apply(a: Long, b: Long): Long = "$a$b".toLong()
+            override fun toString(): String = "||"
         };
 
         abstract fun apply(a: Long, b: Long): Long
@@ -51,6 +68,7 @@ class Day7 {
         }
 
         fun evaluate(operators: List<Operators>): Long {
+            // if no concatenations, evaluate the equation as normal
             var result = operands[0]
             for (i in 1 until operands.size) {
                 result = operators[i - 1].apply(result, operands[i])
