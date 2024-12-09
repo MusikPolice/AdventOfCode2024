@@ -6,7 +6,7 @@ class Day8 {
 
     fun part1(input: List<String>): Int {
         val antennas = parseInput(input)
-        return antennas.entries.flatMap { (frequency, antennaPositions) ->
+        return antennas.entries.flatMap { (_, antennaPositions) ->
             antennaPositions.allPairs().flatMap { antennaPair ->
                 val rise = abs(antennaPair.second.y - antennaPair.first.y)
                 val run = abs(antennaPair.second.x - antennaPair.first.x)
@@ -29,28 +29,58 @@ class Day8 {
         }.distinct().size
     }
 
-    private fun print(nodes: List<Position>, antinodes:List<Position>) {
-        val minX = antinodes.minByOrNull { it.x }!!.x
-        val maxX = antinodes.maxByOrNull { it.x }!!.x
-        val minY = antinodes.minByOrNull { it.y }!!.y
-        val maxY = antinodes.maxByOrNull { it.y }!!.y
+    // TODO test me
+    fun part2(input: List<String>): Int {
+        val maxX = input[0].length
+        val maxY = input.size - 1
+        val antennas = parseInput(input)
 
-        for (y in minY..maxY) {
-            for (x in minX..maxX) {
-                if (nodes.contains(Position(x, y))) {
-                    print("a")
-                } else if (antinodes.contains(Position(x, y))) {
-                    print("#")
+        val antinodes = antennas.entries.flatMap { (_, antennaPositions) ->
+            antennaPositions.allPairs().flatMap { antennaPair ->
+                val rise = abs(antennaPair.second.y - antennaPair.first.y)
+                val run = abs(antennaPair.second.x - antennaPair.first.x)
+                if (antennaPair.first.x < antennaPair.second.x) {
+                    // firsts
+                    var xSteps = (antennaPair.first.x downTo 0 step run).count()
+                    var ySteps = (antennaPair.first.y downTo 0 step rise).count()
+                    val firsts = (1 until minOf(xSteps, ySteps)).map { step ->
+                        Position(x = antennaPair.first.x - step * run, y = antennaPair.first.y - step * rise)
+                    }
+
+                    // seconds
+                    xSteps = (antennaPair.second.x .. maxX step run).count()
+                    ySteps = (antennaPair.second.y .. maxY step rise).count()
+                    val seconds = (1 until minOf(xSteps, ySteps)).map { step ->
+                        Position(x = antennaPair.second.x + step * run, y = antennaPair.second.y + step * rise)
+                    }
+                    firsts + seconds
+
                 } else {
-                    print(".")
+                    // firsts
+                    var xSteps = (antennaPair.first.x .. maxX step run).count()
+                    var ySteps = (antennaPair.first.y downTo 0 step rise).count()
+                    val firsts = (1 until minOf(xSteps, ySteps)).map { step ->
+                        Position(x = antennaPair.first.x + step * run, y = antennaPair.first.y - step * rise)
+                    }
+
+                    // seconds
+                    xSteps = (antennaPair.second.x downTo 0 step run).count()
+                    ySteps = (antennaPair.second.y .. maxY step rise).count()
+                    val seconds = (1 until minOf(xSteps, ySteps)).map { step ->
+                        Position(x = antennaPair.second.x - step * run, y = antennaPair.second.y + step * rise)
+                    }
+                    firsts + seconds
+
                 }
             }
-            println()
         }
-    }
 
-    fun part2(input: List<String>): Int {
-        return 0
+        /*print(antennas.values.flatten().distinct(), antinodes)
+        println("antinodes ${antinodes.distinct().size}")
+        println("antennas ${antennas.values.flatten().distinct().size}")
+        println("total ${(antennas.values.flatten() + antinodes).distinct().size}")
+*/
+        return (antennas.values.flatten() + antinodes).distinct().size
     }
 
     private fun parseInput(input: List<String>): Map<Char, List<Position>> {
@@ -76,6 +106,26 @@ class Day8 {
             }
         }
         return pairs
+    }
+
+    private fun print(nodes: List<Position>, antinodes:List<Position>) {
+        val minX = antinodes.minByOrNull { it.x }!!.x
+        val maxX = antinodes.maxByOrNull { it.x }!!.x
+        val minY = antinodes.minByOrNull { it.y }!!.y
+        val maxY = antinodes.maxByOrNull { it.y }!!.y
+
+        for (y in minY..maxY) {
+            for (x in minX..maxX) {
+                if (nodes.contains(Position(x, y))) {
+                    print("a")
+                } else if (antinodes.contains(Position(x, y))) {
+                    print("#")
+                } else {
+                    print(".")
+                }
+            }
+            println()
+        }
     }
 }
 
