@@ -48,6 +48,72 @@ class Day10 {
         }.values.sum()
     }
 
+    // TODO this gives the wrong answer. something to do with the path branching logic
+    fun part2(input: List<String>): Int {
+        // this time around, we're not going to get away with a stack - we have to assemble a proper graph of nodes
+        val positions = input.parsePositions()
+        val trailheads: Map<Position, MutableList<Path>> = positions.flatten().filter {
+            it.isTrailhead()
+        }.associateWith {
+            mutableListOf(Path(it))
+        }
+
+        trailheads.forEach { (trailhead, paths) ->
+            // process any incomplete paths for this trailhead
+            paths.first { !it.isComplete() }.let { path ->
+                // a path isn't exhausted until we've emptied the stack of potential moves
+                while (path.stack.isNotEmpty()) {
+                    val current = path.stack.pop()
+                    path.visited.add(current)
+
+                    if (current.isSummit()) {
+                        // if we've reached a summit, this path is complete
+                        path.stack.empty()
+                        return@let
+                    } else {
+                        // evaluate all possible directions that we could move in from here
+                        val potentialMoves = listOfNotNull(
+                            current.moveNorth(positions),
+                            current.moveEast(positions),
+                            current.moveSouth(positions),
+                            current.moveWest(positions)
+                        ).filter {
+                            // no loops allowed
+                            !path.visited.contains(it)
+                        }
+
+                        // if there are no valid moves, this branch is exhausted
+                        if (potentialMoves.isEmpty()) continue
+
+                        // the first potential move can be evaluated as a part of the current path
+                        path.stack.push(potentialMoves.first())
+
+                        // any remaining moves are split out into new potential paths
+                        paths.addAll(
+                            potentialMoves.drop(1).map { choice ->
+                                Path(trailhead, path.visited.toMutableList(), choice.newStack())
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        /*trailheads.forEach {
+            println("Trailhead: ${it.key.point} has ${it.value.filter { it.isComplete() }.size} paths")
+        }*/
+
+        return trailheads.values.sumOf { paths -> paths.filter { it.isComplete() } .size }
+    }
+
+    data class Path(
+        val start: Position,
+        val visited: MutableList<Position> = mutableListOf(),
+        val stack: Stack<Position> = start.newStack()
+    ) {
+        fun isComplete() = visited.isNotEmpty() && visited.last().isSummit() && stack.isEmpty()
+    }
+
     data class Point(val x: Int, val y: Int)
     data class Position(val point: Point, val height: Int) {
         fun isTrailhead() = height == 0
@@ -66,6 +132,12 @@ class Day10 {
             }
             return null
         }
+
+        fun newStack(): Stack<Position> {
+            val stack = Stack<Position>()
+            stack.push(this)
+            return stack
+        }
     }
 
     private fun List<String>.parsePositions(): List<List<Position>> {
@@ -75,14 +147,10 @@ class Day10 {
             }
         }
     }
-
-    fun part2(input: List<String>): Int {
-        return 0
-    }
 }
 
 fun main() {
-    val input = Utils.loadFromFile("Day10/input.txt")
+    val input = Utils.loadFromFile("Day10/test.txt")
     println("Part 1: ${Day10().part1(input)}")
     println("Part 2: ${Day10().part2(input)}")
 }
